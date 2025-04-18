@@ -1,5 +1,5 @@
 ## 任务：
-1. data+清理 （3/5）
+1. data+清理 
 2. 原始模型选择 (ARIMA, XGBoost, Prophet......)
 3. modern deep learning model选择（LSTM，Transformer，GRU，TFT, GRU.......)
 4. 做对比，comparison criteria在googledoc有详细版）
