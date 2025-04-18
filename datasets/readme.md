@@ -129,25 +129,31 @@ print("✅ exchange_rate_with_date.csv saved with synthetic date index.")
 转csv的代码
 ```python
 import pandas as pd
-from datetime import timedelta, datetime
+import gzip, pathlib, shutil
 
-# 读取
-df = pd.read_csv("/Users/jzj/Downloads/exchange_rate.txt.gz", compression="gzip", header=None)
-df.columns = [
-    "Australia", "UK", "Canada", 
-    "Switzerland", "China", "Japan", 
-    "New_Zealand", "Singapore"
-]
+# 路径
+src_gz  = pathlib.Path("/Users/jzj/Downloads/solar_AL.txt.gz")   # ← 你的实际路径
+dst_csv = pathlib.Path("/Users/jzj/Downloads/solar_AL.csv")
 
-# 构造日期索引（从1990-01-01开始，逐日）
-start_date = datetime(1990, 1, 1)
-df["date"] = [start_date + timedelta(days=i) for i in range(len(df))]
-df.set_index("date", inplace=True)
+# 1️⃣ 直接用 pandas 读 gzip → DataFrame
+df = pd.read_csv(src_gz, 
+                 compression="gzip", 
+                 header=None)          # 原文件无列名
 
-# 保存为 CSV
-df.to_csv("/Users/jzj/Downloads/exchange_rate_with_date.csv")
+# 2️⃣ 设置列名（根据官方说明：第一列时间索引 + 其他137条序列）
+# 如果你的文件只有单站点，通常第一列是时间戳，其余一列是功率
+if df.shape[1] == 2:
+    df.columns = ["datetime", "power"]
+else:                                  # 多站点/多变量示例
+    df.columns = ["datetime"] + [f"series_{i}" for i in range(1, df.shape[1])]
+    
+# 3️⃣ 转换时间格式并设为索引（可选）
+df["datetime"] = pd.to_datetime(df["datetime"])
+df.set_index("datetime", inplace=True)
 
-print("✅ exchange_rate_with_date.csv saved with synthetic date index.")
+# 4️⃣ 保存为 CSV
+df.to_csv(dst_csv)
+print("✅ Saved:", dst_csv, "shape:", df.shape)
 ```
 上传的文件已经经过了除0处理（源文件很多一整排都是0的）
 清理代码：
