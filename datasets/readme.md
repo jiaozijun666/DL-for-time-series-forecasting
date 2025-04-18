@@ -1,5 +1,11 @@
 ## 1. electricity的data太大了，在这个链接里： https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014
-### zip解压后使用代码 df = pd.read_csv('LD2011_2014.txt', sep=';', index_col=0, parse_dates=True, decimal=',')
+### zip解压后使用代码
+```python
+df = pd.read_csv('LD2011_2014.txt', sep=';', index_col=0, parse_dates=True, decimal=',')
+```
+这里是原数据集（过大）
+
+
 ### 上传的electricity_sample.csv文件是after data cleaning的，缩小了范围，chatgpt说清洗后的数据不影响最后模型结果
 #### 缩小范围的过程
 ```python
