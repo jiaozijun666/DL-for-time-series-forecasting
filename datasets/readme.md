@@ -1,6 +1,27 @@
 ## 1. electricity的data太大了，在这个链接里： https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014
 ### zip解压后使用代码 df = pd.read_csv('LD2011_2014.txt', sep=';', index_col=0, parse_dates=True, decimal=',')
 ### 上传的electricity_sample.csv文件是after data cleaning的，缩小了范围，chatgpt说清洗后的数据不影响最后模型结果
+#### 缩小范围的过程
+```python
+import pandas as pd
+
+# 原始文件路径
+df = pd.read_csv("LD2011_2014.txt", sep=";", index_col=0, parse_dates=True, decimal=",")
+
+# 确保列名格式正确
+df.columns = [col.strip() for col in df.columns]
+
+# 选择时间段（比如：2013 年全年）
+df_small = df.loc["2013-01-01":"2013-12-31"]
+
+# 选取前 20 个用户（或你感兴趣的一些区域）
+df_small = df_small.iloc[:, :20]
+
+# 保存为轻量文件
+df_small.to_csv("electricity_sample.csv")
+```
+
+
 
 ## 2. air quality的数据使用方法：(chatgpt写的，没有测试）
 ### 📄 数据概述
