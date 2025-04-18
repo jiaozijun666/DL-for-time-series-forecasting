@@ -124,4 +124,47 @@ df.to_csv("datasets/exchange/exchange_rate_with_date.csv")
 
 print("✅ exchange_rate_with_date.csv saved with synthetic date index.")
 ```
+## 4.solar energy
+来源：https://github.com/laiguokun/multivariate-time-series-data/tree/master/solar-energy
+转csv的代码
+```python
+import pandas as pd
+from datetime import timedelta, datetime
 
+# 读取
+df = pd.read_csv("/Users/jzj/Downloads/exchange_rate.txt.gz", compression="gzip", header=None)
+df.columns = [
+    "Australia", "UK", "Canada", 
+    "Switzerland", "China", "Japan", 
+    "New_Zealand", "Singapore"
+]
+
+# 构造日期索引（从1990-01-01开始，逐日）
+start_date = datetime(1990, 1, 1)
+df["date"] = [start_date + timedelta(days=i) for i in range(len(df))]
+df.set_index("date", inplace=True)
+
+# 保存为 CSV
+df.to_csv("/Users/jzj/Downloads/exchange_rate_with_date.csv")
+
+print("✅ exchange_rate_with_date.csv saved with synthetic date index.")
+```
+上传的文件已经经过了除0处理（源文件很多一整排都是0的）
+清理代码：
+```python
+#把文件里一整排都是0的行删除
+import pandas as pd
+import numpy as np      
+
+# 读取 CSV 文件
+df = pd.read_csv("/Users/jzj/Downloads/solar_AL_cleaned.csv", header=0, parse_dates=["datetime"], index_col="datetime")
+# 检查缺失值
+print("缺失值统计：")
+print(df.isnull().sum())
+# 删除全为0的行
+df = df[(df != 0).any(axis=1)]
+# 保存为新的 CSV 文件
+df.to_csv("/Users/jzj/Downloads/solar_AL_cleaned_no_zeros.csv")
+print("✅ Cleaned data without zeros saved:", "/Users/jzj/Downloads/solar_AL_cleaned_no_zeros.csv", "shape:", df.shape)
+```
+这个代码是我本地copilot跑出来的，大家要换路径
