@@ -2,7 +2,7 @@
 ### zip解压后使用代码 df = pd.read_csv('LD2011_2014.txt', sep=';', index_col=0, parse_dates=True, decimal=',')
 
 
-## 2. air quality的数据使用方法：
+## 2. air quality的数据使用方法：(chatgpt写的，没有测试）
 ### 📄 数据概述
 - **来源**：[UCI Air Quality Dataset](https://archive.ics.uci.edu/ml/datasets/Air+Quality)
 - **时间范围**：2004 年 3 月 – 2005 年 4 月（分钟级别）
