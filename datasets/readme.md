@@ -1,4 +1,5 @@
-## 1. electricity的data太大了，在这个链接里： https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014
+# 1. electricity
+### 初始data太大了，在这个链接里： https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014
 ### zip解压后使用代码
 ```python
 df = pd.read_csv('LD2011_2014.txt', sep=';', index_col=0, parse_dates=True, decimal=',')
@@ -29,7 +30,7 @@ df_small.to_csv("electricity_sample.csv")
 
 
 
-## 2. air quality的数据使用方法：(chatgpt写的，没有测试）
+# 2. air quality
 ### 📄 数据概述
 - **来源**：[UCI Air Quality Dataset](https://archive.ics.uci.edu/ml/datasets/Air+Quality)
 - **时间范围**：2004 年 3 月 – 2005 年 4 月（分钟级别）
@@ -98,7 +99,7 @@ def create_sequences(X, y, window=24):
 
 Xs, ys = create_sequences(X, y, window=24)
 ```
-## 3.exchange rate
+# 3.exchange rate
 来源：github https://github.com/laiguokun/multivariate-time-series-data/tree/master/exchange_rate
 Mac无法解压这里面的文件
 上传的exchange_rate_with_date.csv是通过下面的代码解出来的
@@ -124,7 +125,7 @@ df.to_csv("datasets/exchange/exchange_rate_with_date.csv")
 
 print("✅ exchange_rate_with_date.csv saved with synthetic date index.")
 ```
-## 4.solar energy
+# 4.solar energy
 来源：https://github.com/laiguokun/multivariate-time-series-data/tree/master/solar-energy
 转csv的代码
 ```python
