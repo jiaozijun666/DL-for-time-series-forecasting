@@ -75,32 +75,8 @@ def create_sequences(X, y, window=24):
 
 Xs, ys = create_sequences(X, y, window=24)
 ```
-# 3.exchange rate（金融领域）
-来源：github https://github.com/laiguokun/multivariate-time-series-data/tree/master/exchange_rate
-Mac无法解压这里面的文件
-上传的exchange_rate_with_date.csv是通过下面的代码解出来的
-```python
-import pandas as pd
-from datetime import timedelta, datetime
-
-# 读取
-df = pd.read_csv("exchange_rate.txt.gz", compression="gzip", header=None)
-df.columns = [
-    "Australia", "UK", "Canada", 
-    "Switzerland", "China", "Japan", 
-    "New_Zealand", "Singapore"
-]
-
-# 构造日期索引（从1990-01-01开始，逐日）
-start_date = datetime(1990, 1, 1)
-df["date"] = [start_date + timedelta(days=i) for i in range(len(df))]
-df.set_index("date", inplace=True)
-
-# 保存为 CSV
-df.to_csv("datasets/exchange/exchange_rate_with_date.csv")
-
-print("✅ exchange_rate_with_date.csv saved with synthetic date index.")
-```
+# 3.productivity(制造业）
+来源：https://archive.ics.uci.edu/dataset/597/productivity+prediction+of+garment+employees
 
 
 # 4. metro interstate traffic volume(交通领域)
@@ -320,7 +296,7 @@ def full_eval(model, loader):
 
 
 
-# 6. electricity（跟solar energy属于同一个领域了，建议使用solar）
+# 6. electricity（也是energy的，先用上面那个）
 ### 初始data太大了，在这个链接里： https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014
 ### zip解压后使用代码
 ```python
