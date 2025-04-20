@@ -1,4 +1,4 @@
-# 1.solar energy
+# 1.solar energy（能源）
 来源：https://github.com/laiguokun/multivariate-time-series-data/tree/master/solar-energy
 转csv的代码
 ```python
@@ -51,7 +51,7 @@ print("✅ Cleaned data without zeros saved:", "/Users/jzj/Downloads/solar_AL_cl
 
 
 
-# 2. air quality
+# 2. air quality（环境）
 ### 📄 数据概述
 - **来源**：[UCI Air Quality Dataset](https://archive.ics.uci.edu/ml/datasets/Air+Quality)
 - **时间范围**：2004 年 3 月 – 2005 年 4 月（分钟级别）
@@ -120,7 +120,7 @@ def create_sequences(X, y, window=24):
 
 Xs, ys = create_sequences(X, y, window=24)
 ```
-# 3.exchange rate
+# 3.exchange rate（金融领域）
 来源：github https://github.com/laiguokun/multivariate-time-series-data/tree/master/exchange_rate
 Mac无法解压这里面的文件
 上传的exchange_rate_with_date.csv是通过下面的代码解出来的
@@ -147,7 +147,38 @@ df.to_csv("datasets/exchange/exchange_rate_with_date.csv")
 print("✅ exchange_rate_with_date.csv saved with synthetic date index.")
 ```
 
-# 4. electricity（跟solar energy属于同一个领域了，建议使用solar）
+
+# 4. metro interstate traffic volume(交通领域)
+### 下载链接：https://archive.ics.uci.edu/dataset/492/metro+interstate+traffic+volume  解压后直接是csv
+### gpt代码雏形（LSTM Seq2Seq）
+```python
+import torch, torch.nn as nn
+
+class Seq2SeqLSTM(nn.Module):
+    def __init__(self, in_dim, hid, out_horizon):
+        super().__init__()
+        self.encoder = nn.LSTM(in_dim, hid, batch_first=True)
+        self.decoder = nn.LSTM(1, hid, batch_first=True)
+        self.fc      = nn.Linear(hid, 1)
+        self.H       = out_horizon
+
+    def forward(self, x):
+        # x: (B,L,d)
+        _, (h,c) = self.encoder(x)
+        dec_in = torch.zeros(x.size(0), 1, 1, device=x.device)  # first decoder input
+        outs=[]
+        for _ in range(self.H):
+            out, (h,c) = self.decoder(dec_in, (h,c))
+            pred = self.fc(out)          # (B,1,1)
+            outs.append(pred.squeeze(1))
+            dec_in = pred
+        return torch.cat(outs, dim=1)    # (B,H)
+
+# 训练时：X(L×d)标准化；y 反标准化再计算指标
+```
+
+
+# 5. electricity（跟solar energy属于同一个领域了，建议使用solar）
 ### 初始data太大了，在这个链接里： https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014
 ### zip解压后使用代码
 ```python
