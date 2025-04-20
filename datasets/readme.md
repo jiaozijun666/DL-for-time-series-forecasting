@@ -177,8 +177,195 @@ class Seq2SeqLSTM(nn.Module):
 # 训练时：X(L×d)标准化；y 反标准化再计算指标
 ```
 
+# 5. gait（生物医疗）
+### 下载链接： https://archive.ics.uci.edu/dataset/760/multivariate+gait+data
+### gpt建议：
+#### （1）清理：
+```python
+import pandas as pd
+df = pd.read_csv("gait_raw/joint_angle_data.csv")
 
-# 5. electricity（跟solar energy属于同一个领域了，建议使用solar）
+# 保证 frame 0‑100 共 101 帧
+df = df[df["frame"].between(0,100)]        
+
+# 可选：去掉极端角度
+df = df[(df.angle>-120) & (df.angle<120)]
+
+#——保存统一版
+df.to_csv("data/gait_clean.csv", index=False)
+```
+#### （2）构造数据集 & DataLoader
+```python
+import numpy as np, torch
+from torch.utils.data import Dataset, DataLoader
+
+SEQ_IN, SEQ_OUT = 51, 50               # 输入 / 输出长度
+FEATURES = ["angle"]                   # 单变量；若想多关节多腿可展开
+
+class GaitDataset(Dataset):
+    def __init__(self, df, split="train"):
+        # leave‐one‐subject‐out；亦可 random split
+        test_ids  = [9,10]
+        if split=="train": self.df = df[~df.subject.isin(test_ids)]
+        else:              self.df = df[df.subject.isin(test_ids)]
+
+        # 分组生成 (101, 1) 的 ndarray
+        self.series = []
+        for _, g in self.df.groupby(["subject","condition","rep","leg","joint"]):
+            seq = g.sort_values("frame")["angle"].to_numpy(dtype=np.float32)
+            if len(seq)==101:
+                self.series.append(seq)
+
+    def __len__(self):  return len(self.series)
+    def __getitem__(self, idx):
+        seq = self.series[idx]
+        x = seq[:SEQ_IN]
+        y = seq[SEQ_IN:]
+        return torch.from_numpy(x).unsqueeze(-1), torch.from_numpy(y).unsqueeze(-1)
+
+train_loader = DataLoader(GaitDataset(df,"train"), batch_size=128, shuffle=True, drop_last=True)
+test_loader  = DataLoader(GaitDataset(df,"test"),  batch_size=128, shuffle=False)
+```
+#### (3)基线模型
+```python
+# Naïve / Persistence
+def persistence_mae(test_loader):
+    import torch, numpy as np
+    maes=[]
+    for x,y in test_loader:
+        y_hat = x[:,-1:,:].repeat(1,SEQ_OUT,1)  # 把最后一帧当预测
+        maes.append(torch.abs(y_hat-y).mean().item())
+    print("Persistence MAE:", np.mean(maes))
+
+#线性外推 + Spline（scikit‑learn）
+from sklearn.linear_model import Ridge
+def ridge_baseline(train_loader, test_loader):
+    X_tr, y_tr = [], []
+    for x,y in train_loader:
+        X_tr.append(x.squeeze(-1)); y_tr.append(y.squeeze(-1))
+    X_tr = torch.cat(X_tr).numpy(); y_tr = torch.cat(y_tr).numpy()
+
+    model = Ridge(alpha=1.0).fit(X_tr, y_tr)      # 多输出回归
+    mae=[]
+    for x,y in test_loader:
+        pred = model.predict(x.squeeze(-1).numpy())
+        mae.append(np.abs(pred - y.squeeze(-1).numpy()).mean())
+    print("Ridge MAE:", np.mean(mae))
+```
+
+#### (4) deep learning
+```python
+# TCN（Temporal Convolutional Network）
+import torch.nn as nn
+class Chomp1d(nn.Module):
+    def __init__(self, chomp):  super().__init__(); self.chomp=chomp
+    def forward(self,x):        return x[:,:,:-self.chomp]
+
+class TemporalBlock(nn.Module):
+    def __init__(self, n_inputs,n_outputs,k=3,d=1,drop=0.2):
+        super().__init__()
+        pad = (k-1)*d
+        self.net = nn.Sequential(
+            nn.Conv1d(n_inputs,n_outputs,k,padding=pad,dilation=d),
+            Chomp1d(pad), nn.ReLU(), nn.Dropout(drop),
+            nn.Conv1d(n_outputs,n_outputs,k,padding=pad,dilation=d),
+            Chomp1d(pad), nn.ReLU(), nn.Dropout(drop)
+        )
+        self.down = nn.Conv1d(n_inputs,n_outputs,1) if n_inputs!=n_outputs else nn.Identity()
+        self.relu = nn.ReLU()
+
+    def forward(self,x):
+        out = self.net(x)
+        return self.relu(out + self.down(x))
+
+class TCN(nn.Module):
+    def __init__(self,n_inputs,n_outputs,channel_sizes=[32,32,32],k=3):
+        super().__init__()
+        layers=[]
+        for i,c in enumerate(channel_sizes):
+            d = 2**i
+            layers.append(TemporalBlock(n_inputs if i==0 else channel_sizes[i-1],
+                                        c,k,d))
+        self.tcn = nn.Sequential(*layers)
+        self.fc  = nn.Linear(channel_sizes[-1], n_outputs)
+
+    def forward(self,x):             # x: (B, L, C)
+        y = self.tcn(x.transpose(1,2)).transpose(1,2)  # (B,L,Ch)
+        return self.fc(y)            # (B,L_out,1)
+
+# 训练循环
+import torch, torch.nn.functional as F, pytorch_lightning as pl
+class LitModel(pl.LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.net = TCN(1, 1, [32,32,32])
+    def forward(self,x):  return self.net(x)
+    def training_step(self,batch,idx):
+        x,y = batch
+        pred = self(x)
+        loss = F.l1_loss(pred, y)       # MAE
+        self.log("train_mae", loss)
+        return loss
+    def validation_step(self,batch,idx):
+        x,y = batch
+        pred = self(x)
+        mae  = F.l1_loss(pred,y)
+        self.log("val_mae", mae, prog_bar=True)
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=3e‑4)
+
+model = LitModel()
+trainer = pl.Trainer(max_epochs=40, accelerator="gpu", devices=1)
+trainer.fit(model, train_loader, test_loader)
+
+# LSTM/GRU baseline
+class Seq2SeqRNN(nn.Module):
+    def __init__(self,h=64,layers=2):
+        super().__init__()
+        self.enc = nn.GRU(1,h,layers,batch_first=True)
+        self.dec = nn.GRU(1,h,layers,batch_first=True)
+        self.fc  = nn.Linear(h,1)
+    def forward(self,x):
+        B = x.size(0)
+        h,_ = self.enc(x)                    # 用最后一个隐状态
+        context = h[:,-1:,:]                 # (B,1,H)
+        dec_in  = x[:,-1:,:].repeat(1,SEQ_OUT,1)   # teacher forcing=0
+        out,_ = self.dec(dec_in, context.permute(1,0,2))
+        return self.fc(out)
+```
+
+#### (5)评估指标 & 可视化
+```python
+from sklearn.metrics import mean_absolute_error
+import matplotlib.pyplot as plt, seaborn as sns
+
+# 对每个 (subject, cond, rep) 画真实/预测角度曲线
+def plot_sample(model, ds, idx=0):
+    x,y = ds[idx]
+    with torch.no_grad():
+        pred = model(x.unsqueeze(0)).squeeze(0).squeeze(-1).numpy()
+    plt.figure(figsize=(7,3))
+    plt.plot(range(101), np.concatenate([x.squeeze(), y.squeeze()]), label="Truth")
+    plt.plot(range(51,101), pred, '--', label="Pred")
+    plt.axvline(50, c='k', ls=':')
+    plt.legend(); plt.title("Angle forecast demo")
+
+# 统计误差
+def full_eval(model, loader):
+    maes=[]
+    with torch.no_grad():
+        for x,y in loader:
+            pred = model(x)
+            maes.append(torch.abs(pred-y).mean().item())
+    print("Global MAE:", np.mean(maes))
+```
+
+
+
+
+
+
+# 6. electricity（跟solar energy属于同一个领域了，建议使用solar）
 ### 初始data太大了，在这个链接里： https://archive.ics.uci.edu/dataset/321/electricityloaddiagrams20112014
 ### zip解压后使用代码
 ```python
