@@ -1,53 +1,8 @@
-# 1.solar energy（能源）
-来源：https://github.com/laiguokun/multivariate-time-series-data/tree/master/solar-energy
-转csv的代码
-```python
-import pandas as pd
-import gzip, pathlib, shutil
+# 1.energy（能源）
+来源：https://archive.ics.uci.edu/dataset/374/appliances+energy+prediction
 
-# 路径
-src_gz  = pathlib.Path("/Users/jzj/Downloads/solar_AL.txt.gz")   # ← 你的实际路径
-dst_csv = pathlib.Path("/Users/jzj/Downloads/solar_AL.csv")
 
-# 1️⃣ 直接用 pandas 读 gzip → DataFrame
-df = pd.read_csv(src_gz, 
-                 compression="gzip", 
-                 header=None)          # 原文件无列名
 
-# 2️⃣ 设置列名（根据官方说明：第一列时间索引 + 其他137条序列）
-# 如果你的文件只有单站点，通常第一列是时间戳，其余一列是功率
-if df.shape[1] == 2:
-    df.columns = ["datetime", "power"]
-else:                                  # 多站点/多变量示例
-    df.columns = ["datetime"] + [f"series_{i}" for i in range(1, df.shape[1])]
-    
-# 3️⃣ 转换时间格式并设为索引（可选）
-df["datetime"] = pd.to_datetime(df["datetime"])
-df.set_index("datetime", inplace=True)
-
-# 4️⃣ 保存为 CSV
-df.to_csv(dst_csv)
-print("✅ Saved:", dst_csv, "shape:", df.shape)
-```
-上传的文件已经经过了除0处理（源文件很多一整排都是0的）
-清理代码：
-```python
-#把文件里一整排都是0的行删除
-import pandas as pd
-import numpy as np      
-
-# 读取 CSV 文件
-df = pd.read_csv("/Users/jzj/Downloads/solar_AL_cleaned.csv", header=0, parse_dates=["datetime"], index_col="datetime")
-# 检查缺失值
-print("缺失值统计：")
-print(df.isnull().sum())
-# 删除全为0的行
-df = df[(df != 0).any(axis=1)]
-# 保存为新的 CSV 文件
-df.to_csv("/Users/jzj/Downloads/solar_AL_cleaned_no_zeros.csv")
-print("✅ Cleaned data without zeros saved:", "/Users/jzj/Downloads/solar_AL_cleaned_no_zeros.csv", "shape:", df.shape)
-```
-这个代码是我本地copilot跑出来的，大家要换路径
 
 
 
