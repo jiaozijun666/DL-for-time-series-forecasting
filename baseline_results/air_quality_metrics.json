@@ -1,0 +1,9 @@
+{
+  "air_quality": {
+    "lightgbm": {
+      "mae": 0.396,
+      "rmse": 0.577,
+      "smape": 21.28
+    }
+  }
+}

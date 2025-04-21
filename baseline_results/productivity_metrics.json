@@ -1,0 +1,9 @@
+{
+  "productivity": {
+    "lightgbm": {
+      "mae": 0.067,
+      "rmse": 0.133,
+      "smape": 10.72
+    }
+  }
+}
