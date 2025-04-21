@@ -68,7 +68,7 @@ metrics = {
 }
 
 # 保存为 JSON 文件
-with open(result_path / "air_quality_metrics.json", "w") as f:
+with open(result_path / "LGBM_air_quality_metrics.json", "w") as f:
     json.dump(metrics, f, indent=2)
 
 
