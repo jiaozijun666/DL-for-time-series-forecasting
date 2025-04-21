@@ -1,0 +1,9 @@
+{
+  "air_quality": {
+    "prophet": {
+      "mae": 0.928,
+      "rmse": 1.245,
+      "smape": 64.03
+    }
+  }
+}

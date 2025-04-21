@@ -61,5 +61,5 @@ results = {
 }
 
 Path("results").mkdir(exist_ok=True)
-with open("baseline_results/LGBM_productivity_metrics.json", "w") as f:
+with open("baseline_results/LGBM/LGBM_productivity_metrics.json", "w") as f:
     json.dump(results, f, indent=2)

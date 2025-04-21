@@ -57,7 +57,7 @@ results = {
 }
 
 Path("baseline_results").mkdir(exist_ok=True)
-with open("baseline_results/LGBM_gait_metrics.json", "w") as f:
+with open("baseline_results/LGBM/LGBM_gait_metrics.json", "w") as f:
     json.dump(results, f, indent=2)
 
 

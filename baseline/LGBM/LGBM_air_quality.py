@@ -54,7 +54,7 @@ import json
 from pathlib import Path
 
 # 构造保存路径
-result_path = Path("baseline_results")
+result_path = Path("baseline_results/LGBM")
 result_path.mkdir(exist_ok=True)
 
 metrics = {
