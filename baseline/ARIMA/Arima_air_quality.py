@@ -63,4 +63,3 @@ results = {
 Path("baseline_results").mkdir(exist_ok=True)
 with open("baseline_results/Arima/Arima_air_quality_metrics.json", "w") as f:
     json.dump(results, f, indent=2)
-

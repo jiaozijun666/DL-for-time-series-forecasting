@@ -1,0 +1,10 @@
+{
+  "gait": {
+    "arima": {
+      "mae": null,
+      "rmse": null,
+      "smape": null,
+      "note": "ARIMA failed: All predictions are NaN"
+    }
+  }
+}

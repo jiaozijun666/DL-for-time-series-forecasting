@@ -1,0 +1,10 @@
+{
+  "energy": {
+    "arima": {
+      "mae": null,
+      "rmse": null,
+      "smape": null,
+      "note": "ARIMA failed: no valid predictions (all NaN)"
+    }
+  }
+}
