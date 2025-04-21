@@ -1,9 +1,9 @@
 {
   "gait": {
     "lightgbm": {
-      "mae": 4.191,
-      "rmse": 4.942,
-      "smape": 55.11
+      "mae": 0.545,
+      "rmse": 1.678,
+      "smape": 10.54
     }
   }
 }
