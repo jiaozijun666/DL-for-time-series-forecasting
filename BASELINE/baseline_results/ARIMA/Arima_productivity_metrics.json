@@ -1,9 +1,0 @@
-{
-  "productivity": {
-    "arima": {
-      "mae": 0.166,
-      "rmse": 0.188,
-      "smape": 25.57
-    }
-  }
-}

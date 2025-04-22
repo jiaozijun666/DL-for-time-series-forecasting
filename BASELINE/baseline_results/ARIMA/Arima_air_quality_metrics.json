@@ -1,9 +1,0 @@
-{
-  "air_quality": {
-    "arima": {
-      "mae": 1.084,
-      "rmse": 1.321,
-      "smape": 56.45
-    }
-  }
-}

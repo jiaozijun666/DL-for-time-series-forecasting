@@ -1,9 +1,0 @@
-{
-  "productivity": {
-    "prophet": {
-      "mae": 0.136,
-      "rmse": 0.168,
-      "smape": 20.76
-    }
-  }
-}
