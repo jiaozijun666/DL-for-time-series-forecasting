@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from models.arima_model import run_auto_arima_forecast
 from utils.metrics import evaluate_all_metrics
 
-# 数据集路径
+# ✅ 数据集路径
 datasets = {
     "air_quality": "datasets/data_clean/air_quality.csv",
     "energy": "datasets/data_clean/energy.csv",
@@ -15,51 +15,64 @@ datasets = {
     "productivity": "datasets/data_clean/productivity.csv"
 }
 
-# 每个数据集的季节参数设定
+# ✅ 每个数据集的季节性设置和是否降采样
 seasonal_params = {
-    "air_quality": (True, 24),
-    "energy": (False, 1),
-    "gait": (False, 1),
-    "metro": (True, 24),
-    "productivity": (False, 1)
+    "air_quality":   {"seasonal": True,  "m": 24,  "downsample": False},
+    "energy":        {"seasonal": False, "m": 1,   "downsample": True},
+    "gait":          {"seasonal": False, "m": 1,   "downsample": True},
+    "metro":         {"seasonal": True,  "m": 24,  "downsample": False},
+    "productivity":  {"seasonal": False, "m": 1,   "downsample": False}
 }
 
-# 输出目录
-os.makedirs("results/AutoARIMA", exist_ok=True)
+# ✅ 输出文件夹
+os.makedirs("results/ARIMA", exist_ok=True)
 
+# ✅ 循环处理每个数据集
 for name, path in datasets.items():
-    print(f"🔁 Running auto_arima for {name}...")
+    print(f"🔁 Running Auto ARIMA for {name}...")
 
     df = pd.read_csv(path)
-    df = df.dropna()
     if 'y' not in df.columns:
-        raise ValueError(f"{name} missing 'y' column")
+        print(f"❌ Skipped {name}: missing column 'y'")
+        continue
 
-    seasonal, m = seasonal_params[name]
+    df = df.dropna().reset_index(drop=True)
 
-    start = time.time()
+    config = seasonal_params[name]
+
     try:
-        y_true, y_pred = run_auto_arima_forecast(df, seasonal=seasonal, m=m)
+        start = time.time()
+
+        # ✅ 执行模型
+        y_true, y_pred = run_auto_arima_forecast(
+            df,
+            seasonal=config["seasonal"],
+            m=config["m"],
+            downsample=config["downsample"],
+            max_order=5, max_p=2, max_q=2, max_P=1, max_Q=1
+        )
+
         runtime = round(time.time() - start, 3)
 
-        # 指标评估
+        # ✅ 评估指标
         metrics = evaluate_all_metrics(y_true, y_pred, threshold=100, runtime=runtime)
-        pd.DataFrame([metrics]).to_csv(f"results/AutoARIMA/metrics_{name}.csv", index=False)
+        pd.DataFrame([metrics]).to_csv(f"results/ARIMA/metrics_{name}.csv", index=False)
 
-        # 绘图
+        # ✅ 绘图
         plt.figure(figsize=(10, 4))
-        plt.plot(y_true, label='True')
-        plt.plot(y_pred, label='Predicted', linestyle='--')
-        plt.title(f"Auto ARIMA Forecast - {name}")
+        plt.plot(y_true, label="True", linewidth=2)
+        plt.plot(y_pred, label="Predicted", linestyle='--')
+        plt.title(f"ARIMA Forecast - {name}")
         plt.xlabel("Time")
         plt.ylabel("Value")
         plt.legend()
         plt.tight_layout()
-        plt.savefig(f"results/AutoARIMA/prediction_{name}.png")
+        plt.savefig(f"results/ARIMA/prediction_{name}.png")
         plt.close()
 
-        print(f"✅ Done: {name} | Runtime: {runtime}s")
-    except Exception as e:
-        print(f"❌ Failed: {name} | Reason: {str(e)}")
+        print(f"✅ Finished {name} | Runtime: {runtime}s\n")
 
-print("🎉 All datasets processed with AutoARIMA.")
+    except Exception as e:
+        print(f"❌ Failed {name}: {str(e)}")
+
+
