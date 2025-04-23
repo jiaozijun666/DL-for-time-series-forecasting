@@ -1,19 +1,21 @@
-# === utils/lstm_all.py ===
 import os
 import time
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
+from sklearn.preprocessing import StandardScaler
+from torch.utils.data import DataLoader, Dataset
 from models.lstm_model import run_lstm_forecast
 from utils.metrics import evaluate_all_metrics
 
 # ✅ 数据集路径
 datasets = {
-    "air_quality": "datasets/data_clean/air_quality.csv",
-    "energy": "datasets/data_clean/energy.csv",
-    "gait": "datasets/data_clean/gait.csv",
-    "metro": "datasets/data_clean/metro.csv",
-    "productivity": "datasets/data_clean/productivity.csv"
+    "air_quality": "data/data_clean/air_quality.csv",
+    "energy": "data/data_clean/energy.csv",
+    "gait": "data/data_clean/gait.csv",
+    "metro": "data/data_clean/metro.csv",
+    "productivity": "data/data_clean/productivity.csv"
 }
 
 # ✅ LSTM 训练参数
@@ -24,57 +26,92 @@ params = {
     'LEARNING_RATE': 1e-4,
     'EPOCHS': 60,
     'PATIENCE': 10,
-    'DEVICE': "cuda" if torch.cuda.is_available() else "cpu"
+    'DEVICE': "cuda" if torch.cuda.is_available() else "cpu",
+    'BATCH_SIZE': 128
 }
 
-# ✅ 滞后特征处理函数
 LOOKBACK, HORIZON = 24, 24
 
-def make_supervised_data(series, lookback=24, horizon=24):
+class WindowDS(Dataset):
+    def __init__(self, X, y):
+        self.X = torch.from_numpy(X)
+        self.y = torch.from_numpy(y).unsqueeze(-1)
+    def __len__(self): return len(self.X)
+    def __getitem__(self, idx): return self.X[idx], self.y[idx]
+
+def load_split_scale(path, target='y', time_col='timestamp'):
+    df = pd.read_csv(path)
+    if time_col in df.columns:
+        df[time_col] = pd.to_datetime(df[time_col])
+        df = df.sort_values(time_col)
+    else:
+        df = df.reset_index().rename(columns={"index": "seq_idx"})
+        time_col = "seq_idx"
+    df = df.reset_index(drop=True)
+    feat_cols = [c for c in df.columns if c not in (time_col, target)]
+    if not feat_cols:
+        feat_cols = [target]
+
+    n = len(df)
+    train_end, val_end = int(n * 0.7), int(n * 0.85)
+    train_df, val_df, test_df = df[:train_end], df[train_end:val_end], df[val_end:]
+
+    scaler = StandardScaler()
+    train_df[feat_cols] = scaler.fit_transform(train_df[feat_cols])
+    val_df[feat_cols] = scaler.transform(val_df[feat_cols])
+    test_df[feat_cols] = scaler.transform(test_df[feat_cols])
+    return train_df, val_df, test_df, feat_cols
+
+def make_windows(df, feat_cols, target, lookback, horizon):
     X, y = [], []
-    for i in range(len(series) - lookback - horizon + 1):
-        X.append(series[i:i+lookback])
-        y.append(series[i+lookback:i+lookback+horizon])
+    feats = df[feat_cols].astype(np.float32).values
+    targets = df[target].astype(np.float32).values
+    for i in range(len(df) - lookback - horizon + 1):
+        X.append(feats[i:i+lookback])
+        y.append(targets[i+lookback:i+lookback+horizon])
     return np.array(X), np.array(y)
 
 # ✅ 创建输出目录
 os.makedirs("results/LSTM", exist_ok=True)
 
-# ✅ 主流程循环
 for name, path in datasets.items():
     print(f"🚀 Running LSTM for {name}...")
-    df = pd.read_csv(path)
-    series = df['y'].dropna().values.astype(np.float32)
-    X, y = make_supervised_data(series, LOOKBACK, HORIZON)
-
-    split = int(len(X) * 0.8)
-    X_train, X_test = X[:split], X[split:]
-    y_train, y_test = y[:split], y[split:]
-
     start = time.time()
-    y_true, y_pred, val_losses, mae, rmse = run_lstm_forecast(X_train, y_train, X_test, y_test, {**params, 'HORIZON': HORIZON})
+    df_tr, df_va, df_te, feat_cols = load_split_scale(path)
+
+    X_tr, y_tr = make_windows(df_tr, feat_cols, 'y', LOOKBACK, HORIZON)
+    X_va, y_va = make_windows(df_va, feat_cols, 'y', LOOKBACK, HORIZON)
+    X_te, y_te = make_windows(df_te, feat_cols, 'y', LOOKBACK, HORIZON)
+
+    train_loader = DataLoader(WindowDS(X_tr, y_tr), batch_size=params['BATCH_SIZE'], shuffle=True)
+    val_loader = DataLoader(WindowDS(X_va, y_va), batch_size=params['BATCH_SIZE'], shuffle=False)
+    test_loader = DataLoader(WindowDS(X_te, y_te), batch_size=params['BATCH_SIZE'], shuffle=False)
+
+    loaders = (train_loader, val_loader, test_loader)
+    y_true, y_pred, train_losses, val_losses, mae, rmse = run_lstm_forecast(
+        loaders, len(feat_cols), {**params, 'HORIZON': HORIZON}, return_train_loss=True
+    )
     runtime = round(time.time() - start, 3)
 
-    # ✅ 评估并保存指标
     metrics = evaluate_all_metrics(y_true, y_pred, threshold=100, runtime=runtime)
-    pd.DataFrame([metrics]).to_csv(f"results/LSTM/metrics_{name}.csv", index=False)
+    pd.DataFrame([metrics]).to_csv(f"results/metric_csv/LSTM/metrics_{name}.csv", index=False)
 
-    # ✅ 预测图
     plt.figure(figsize=(10, 4))
-    plt.plot(y_true[:, 0], label='True', linewidth=2)
-    plt.plot(y_pred[:, 0], label='Predicted', linestyle='--')
-    plt.title(f"LSTM Prediction - {name} (t+1)")
-    plt.xlabel("Time")
-    plt.ylabel("Value")
-    plt.legend()
+    plt.plot(y_true[:200, 0], label='True', linewidth=2)
+    plt.plot(y_pred[:200, 0], label='Pred', color='orange')
+    plt.title(f"{name} – step t+1")
     plt.tight_layout()
-    plt.savefig(f"results/LSTM/prediction_{name}.png")
+    plt.legend()
+    plt.savefig(f"results/prediction_png/LSTM/prediction_{name}.png")
     plt.close()
 
-    # ✅ 验证损失图
-    plt.figure(figsize=(6, 3))
+    plt.figure(figsize=(6, 4))
+    plt.plot(train_losses, label="Train Loss", color='blue')
     plt.plot(val_losses, label="Val Loss", color='orange')
-    plt.title(f"Validation Loss - {name}")
+    plt.title(f"Loss over Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("MSE Loss")
+    plt.legend()
     plt.tight_layout()
-    plt.savefig(f"results/LSTM/loss_{name}.png")
+    plt.savefig(f"results/loss_png/LSTM/loss_{name}.png")
     plt.close()
