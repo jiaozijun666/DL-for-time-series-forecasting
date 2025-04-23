@@ -71,8 +71,6 @@ def make_windows(df, feat_cols, target, lookback, horizon):
         y.append(targets[i+lookback:i+lookback+horizon])
     return np.array(X), np.array(y)
 
-# ✅ 创建输出目录
-os.makedirs("results/LSTM", exist_ok=True)
 
 for name, path in datasets.items():
     print(f"🚀 Running LSTM for {name}...")
@@ -115,3 +113,43 @@ for name, path in datasets.items():
     plt.tight_layout()
     plt.savefig(f"results/loss_png/LSTM/loss_{name}.png")
     plt.close()
+
+# 绘制comparision_bar
+
+# === 配置路径 ===
+input_dir = "results/metric_csv/LSTM"
+output_dir = "results/comparisions_png/LSTM"
+os.makedirs(output_dir, exist_ok=True)
+
+# === 读取所有指标 CSV ===
+all_files = glob.glob(os.path.join(input_dir, "metrics_*.csv"))
+records = []
+for file in all_files:
+    df = pd.read_csv(file)
+    name = os.path.splitext(os.path.basename(file))[0].replace("metrics_", "")
+    df.insert(0, "dataset", name)
+    records.append(df)
+
+metrics_df = pd.concat(records).reset_index(drop=True)
+
+# === 画图函数 ===
+def plot_bar(metric_name):
+    plt.figure(figsize=(8, 5))
+    values = metrics_df[["dataset", metric_name]].sort_values(metric_name)
+    plt.bar(values["dataset"], values[metric_name], color="steelblue")
+    for i, v in enumerate(values[metric_name]):
+        plt.text(i, v + 0.01, f"{v:.3f}", ha='center', fontsize=9)
+    plt.ylabel(metric_name.upper())
+    plt.title(f"{metric_name.upper()} per dataset", fontsize=14, weight='bold')
+    plt.xticks(rotation=45)
+    plt.ylim(0, values[metric_name].max() + 0.1)
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/comparision_{metric_name.upper()}.png")
+    plt.close()
+
+# === 批量绘制 MAE / RMSE / MAPE ===
+for metric in ["mae", "rmse", "mape"]:
+    if metric in metrics_df.columns:
+        plot_bar(metric)
+    else:
+        print(f"⚠️ Metric '{metric}' not found in CSV files.")
