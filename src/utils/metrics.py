@@ -2,6 +2,7 @@ import numpy as np
 import time
 from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score
 
+
 def mean_absolute_percentage_error(y_true, y_pred):
     return np.mean(np.abs((y_true - y_pred) / (y_true + 1e-10))) * 100
 
@@ -30,3 +31,4 @@ def evaluate_all_metrics(y_true, y_pred, threshold=100, runtime=None):
         f'Threshold_Accuracy(>{threshold})': threshold_accuracy(y_true, y_pred, threshold),
         'Runtime_Seconds': runtime if runtime is not None else -1
     }
+
