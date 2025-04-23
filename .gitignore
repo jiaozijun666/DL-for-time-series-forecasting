@@ -1,0 +1,35 @@
+# === Python bytecode ===
+__pycache__/
+*.py[cod]
+*$py.class
+
+# === Virtual environments ===
+venv/
+env/
+.venv/
+ENV/
+Pipfile.lock
+
+# === PyCharm ===
+.idea/
+*.iml
+
+# === VSCode ===
+.vscode/
+
+# === Jupyter Notebooks ===
+.ipynb_checkpoints
+
+# === macOS ===
+.DS_Store
+
+# === Others you may not need ===
+*.log
+*.sqlite3
+*.bak
+*.swp
+*.tmp
+
+# === Project-specific ===
+/shelf/
+/workspace.xml
