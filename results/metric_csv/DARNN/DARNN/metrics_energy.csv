@@ -1,2 +1,0 @@
-MAE,RMSE,MAPE,sMAPE,Directional_Accuracy,Threshold_Accuracy(>100.0),Runtime_Seconds,training_time(s),memory_usage_mb(MB),early_stopped,final_epoch
-0.0327913723886013,0.06666947901248932,40.62739562988281,34.04064476490021,0.4167427718639374,1.0,-1,2.5407,30960.254976,0,60
