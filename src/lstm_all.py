@@ -1,13 +1,17 @@
 import os
 import time
+import glob
 import pandas as pd
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 import torch
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, Dataset
+import torch.nn as nn
 from models.lstm_model import run_lstm_forecast
 from utils.metrics import evaluate_all_metrics
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 # ✅ 数据集路径
 datasets = {
@@ -127,28 +131,38 @@ records = []
 for file in all_files:
     df = pd.read_csv(file)
     name = os.path.splitext(os.path.basename(file))[0].replace("metrics_", "")
-    df.insert(0, "dataset", name)
+    df.columns = [col.upper() for col in df.columns]
+    df.insert(0, "DATASET", name)
     records.append(df)
 
 metrics_df = pd.concat(records).reset_index(drop=True)
 
-# === 画图函数 ===
+# === 画图函数（美化版） ===
 def plot_bar(metric_name):
-    plt.figure(figsize=(8, 5))
-    values = metrics_df[["dataset", metric_name]].sort_values(metric_name)
-    plt.bar(values["dataset"], values[metric_name], color="steelblue")
-    for i, v in enumerate(values[metric_name]):
-        plt.text(i, v + 0.01, f"{v:.3f}", ha='center', fontsize=9)
-    plt.ylabel(metric_name.upper())
-    plt.title(f"{metric_name.upper()} per dataset", fontsize=14, weight='bold')
-    plt.xticks(rotation=45)
-    plt.ylim(0, values[metric_name].max() + 0.1)
+    plt.figure(figsize=(9, 6))
+    values = metrics_df[["DATASET", metric_name]].sort_values(metric_name)
+    bars = plt.bar(values["DATASET"], values[metric_name], color="#4C72B0", edgecolor='black')
+    for bar, val in zip(bars, values[metric_name]):
+        plt.text(bar.get_x() + bar.get_width() / 2, val + 0.01 * val, f"{val:.3f}",
+                 ha='center', va='bottom', fontsize=10, fontweight='medium')
+    plt.ylabel(metric_name, fontsize=12)
+    plt.title(f"{metric_name} per dataset", fontsize=16, weight='bold')
+    plt.xticks(rotation=30, ha='right', fontsize=11)
+    plt.yticks(fontsize=11)
+    plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
-    plt.savefig(f"{output_dir}/comparision_{metric_name.upper()}.png")
+    plt.savefig(f"{output_dir}/comparision_{metric_name}.png")
     plt.close()
 
-# === 批量绘制 MAE / RMSE / MAPE ===
-for metric in ["mae", "rmse", "mape"]:
+# === 仅绘制这四个指标图 ===
+metrics_to_plot = [
+    "MAE",
+    "RMSE",
+    "MAPE",
+    "SMAPE"
+]
+
+for metric in metrics_to_plot:
     if metric in metrics_df.columns:
         plot_bar(metric)
     else:
