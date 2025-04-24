@@ -1,13 +1,13 @@
-# ✅ prophet_all.py（修正版：支持正确路径 + 条件绘图）
+# ✅ prophet_all.py（完整版，配合 TimeSeriesForecaster）
 import os
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from models.prophet_model import run_prophet_forecast
+from models.prophet_model import TimeSeriesForecaster
 from utils.metrics import evaluate_all_metrics
 
-# ✅ 数据集路径
+# ✅ 数据路径与频率设定
 datasets = {
     "air_quality": "data/data_clean/air_quality.csv",
     "energy": "data/data_clean/energy.csv",
@@ -15,14 +15,6 @@ datasets = {
     "metro": "data/data_clean/metro.csv",
     "productivity": "data/data_clean/productivity.csv"
 }
-
-# ✅ 创建所有必要的目录
-os.makedirs("results/metric_csv/Prophet", exist_ok=True)
-os.makedirs("results/prediction_png/Prophet", exist_ok=True)
-os.makedirs("results/comparisons_png/Prophet", exist_ok=True)
-
-# ✅ 每个数据集的时间频率
-target_column = "y"
 freqs = {
     "air_quality": "h",
     "energy": "10min",
@@ -31,12 +23,18 @@ freqs = {
     "productivity": "D"
 }
 
+# ✅ 输出目录结构
+os.makedirs("results/metric_csv/Prophet", exist_ok=True)
+os.makedirs("results/prediction_png/Prophet", exist_ok=True)
+os.makedirs("results/comparisons_png/Prophet", exist_ok=True)
+
+target_column = "y"
+
 def run_all():
     all_metrics = []
 
     for name, path in datasets.items():
         print(f"\n🔮 Running Prophet for {name}...")
-
         df = pd.read_csv(path)
         if target_column not in df.columns:
             print(f"❌ Skipped {name}: missing column '{target_column}'")
@@ -46,9 +44,10 @@ def run_all():
         freq = freqs[name]
 
         try:
-            start = time.time()
-            y_true, y_pred = run_prophet_forecast(series, freq=freq)
-            runtime = round(time.time() - start, 3)
+            model = TimeSeriesForecaster(freq=freq, test_size=0.2)
+            model.train(series)
+            y_true, y_pred = model.predict(series)
+            runtime = round(time.time(), 3)
 
             # ✅ 保存指标
             metrics = evaluate_all_metrics(y_true, y_pred, threshold=100, runtime=runtime)
@@ -72,7 +71,7 @@ def run_all():
         except Exception as e:
             print(f"❌ Failed {name}: {str(e)}")
 
-    # ✅ 汇总对比图（仅当有成功数据）
+    # ✅ 总体比较图
     if all_metrics:
         summary_df = pd.DataFrame(all_metrics)
         for metric in ["MAE", "RMSE", "MAPE"]:
@@ -80,13 +79,12 @@ def run_all():
             bars = plt.bar(summary_df["Dataset"], summary_df[metric])
             for bar, value in zip(bars, summary_df[metric]):
                 plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{value:.2f}", ha="center", va="bottom")
-            plt.title(f"Prophet {metric} per datasets")
+            plt.title(f"Prophet {metric} Comparison across Datasets")
             plt.ylabel(metric)
             plt.grid(axis='y')
             plt.tight_layout()
-            plt.savefig(f"results/comparisons_png/Prophet/comparison_{metric}.png")
+            plt.savefig(f"results/comparisons_png/Prophet/Comparison_{metric}.png")
             plt.close()
-            print(f"📊 Saved overall_{metric}.png")
 
 if __name__ == "__main__":
     run_all()
