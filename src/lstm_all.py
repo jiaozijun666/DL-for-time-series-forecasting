@@ -94,8 +94,12 @@ for name, path in datasets.items():
         loaders, len(feat_cols), {**params, 'HORIZON': HORIZON}, return_train_loss=True
     )
     runtime = round(time.time() - start, 3)
+    memory_mb = round(process.memory_info().rss / 1024**2, 2)
+    early_stopping = "Yes" if len(val_losses) < params['EPOCHS'] else "No"
 
     metrics = evaluate_all_metrics(y_true, y_pred, threshold=100, runtime=runtime)
+    metrics['MEMORY_MB'] = memory_mb
+    metrics['EARLY_STOPPING'] = early_stopping
     pd.DataFrame([metrics]).to_csv(f"results/metric_csv/LSTM/metrics_{name}.csv", index=False)
 
     plt.figure(figsize=(10, 4))
