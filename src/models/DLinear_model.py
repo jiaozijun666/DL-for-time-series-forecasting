@@ -182,39 +182,6 @@ def forecast(model, data, input_window, output_window, forecast_steps, device):
             break
     
     return np.array(predictions)
-'''
-def plot_results(dataset_name, y_true, y_pred, train_losses, val_losses, output_dir, 
-                 training_time, memory_usage, early_stopped, final_epoch):
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # fig1: prediction plot
-    plt.figure(figsize=(12, 6))
-    plt.plot(y_true, label='true value', color='blue')
-    plt.plot(y_pred, label='DLinear forecast', color='red', linestyle='--')
-    plt.title(f'{dataset_name} - DLinear forecast')
-    plt.xlabel('time step')
-    plt.ylabel('value')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f'prediction_{dataset_name}.png'))
-
-    
-    # fig2: loss curves
-    plt.figure(figsize=(10, 5))
-    plt.plot(train_losses, label='training loss')
-    plt.plot(val_losses, label='validation loss')
-    plt.title(f'{dataset_name} - DLinear model loss curves')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    # Add training info as text on the plot
-    early_stop_text = "Early stopped" if early_stopped else "Completed all epochs"
-    plt.figtext(0.5, 0.01, 
-                f"Training time: {training_time:.2f}s | Memory: {memory_usage:.1f}MB | {early_stop_text} | Final epoch: {final_epoch}",
-                ha="center", fontsize=9, bbox={"facecolor":"white", "alpha":0.5, "pad":5})
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f'loss_{dataset_name}.png'))
-    '''
     
 class DLinearAnalyzer:
   
@@ -320,8 +287,8 @@ class DLinearAnalyzer:
         metrics['memory_usage_mb(MB)'] = memory_used
         metrics['early_stopped'] = 1 if early_stopped else 0
         metrics['final_epoch'] = final_epoch
-        # drop metrics['Runtime_Seconds']
         metrics.pop('Runtime_Seconds', None)
+        metrics['Threshold_Accuracy'] = metrics.pop('Threshold_Accuracy(>100)', None)
         
         print("creating visualization plots and saving results...")
         
