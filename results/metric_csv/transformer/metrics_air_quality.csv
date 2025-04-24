@@ -1,0 +1,8 @@
+Metric,Value
+MAE,0.6537
+RMSE,0.9086
+MAPE,54.4117
+sMAPE,34.3936
+Directional_Accuracy,0.6353
+Threshold_Accuracy(>100),1.0
+Runtime_Seconds,451.2193

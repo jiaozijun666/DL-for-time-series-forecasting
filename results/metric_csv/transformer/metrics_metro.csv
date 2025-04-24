@@ -1,0 +1,2 @@
+MAE,RMSE,MAPE,sMAPE,Directional_Accuracy,Threshold_Accuracy(>100),Runtime_Seconds
+1724.0822,1971.0676,170.0744,61.805,0.4889,1.0,1636.105
