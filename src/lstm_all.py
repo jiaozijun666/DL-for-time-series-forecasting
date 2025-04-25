@@ -75,6 +75,9 @@ def make_windows(df, feat_cols, target, lookback, horizon):
         y.append(targets[i+lookback:i+lookback+horizon])
     return np.array(X), np.array(y)
 
+import psutil
+import os
+process = psutil.Process(os.getpid())
 
 for name, path in datasets.items():
     print(f"🚀 Running LSTM for {name}...")
